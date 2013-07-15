@@ -14,6 +14,8 @@ class Novaposhta {
     
     protected $regexOfficeCity = '#(.+) \((.+)\)#';
     
+    private $_allOffices = null;
+    
     public static $CURL_OPTS = array(
         CURLOPT_CONNECTTIMEOUT    => 10,
         CURLOPT_RETURNTRANSFER    => 1,
@@ -21,7 +23,11 @@ class Novaposhta {
     );
     
     public function getAllOffices() {
-        $result = array();
+        if ($this->_allOffices) {
+            return $this->_allOffices;
+        }
+        
+        $allOffices = array();
         
         $doc = @DOMDocument::loadHTML($this->_fetch(self::URL_ALL_OFFICES));
         
@@ -57,7 +63,7 @@ class Novaposhta {
                 $phoneNode = $children->item(2);
                 $offPhone = trim($phoneNode->nodeValue);
                 
-                $result[] = array(
+                $allOffices[] = array(
                     'id' => $offId,
                     'name' => $offName,
                     'address' => $offAddress,
@@ -68,7 +74,9 @@ class Novaposhta {
             }
         }
         
-        return $result;
+        $this->_allOffices = $allOffices;
+        
+        return $allOffices;
     }
     
     protected function _getCoords($address) {
@@ -148,6 +156,52 @@ class Novaposhta {
         }
         
         return $response;
+    }
+    
+    public function getOfficeById($id) {
+        if (!$id || !is_numeric($id)) {
+            throw new Novaposhta_Exception('Wrong format for Id. It should be numeric value.');
+        }
+        
+        foreach($this->getAllOffices() as $office) {
+            if ($office['id'] == $id) {
+                return $office;
+            }
+        }
+        
+        return false;
+    }
+    
+    public function getOfficesBy($field, $value, $substr = false) {
+        $allOffices = $this->getAllOffices();
+        
+        if (!isset($allOffices[0], $field)) {
+            throw new Novaposhta_Exception('Unknown field specified.');
+        }
+        
+        $value = trim($value);
+        
+        if (!$value) {
+            throw new Novaposhta_Exception('Value is not specified.');
+        }
+        
+        $result = array();
+        
+        if ($substr) {
+            foreach($allOffices as $office) {
+                if (mb_strpos($office[$field], $value, 0, 'uft-8') !== false) {
+                    $result[] = $office;
+                }
+            }
+        } else {
+            foreach($allOffices as $office) {
+                if ($office[$field] == $value) {
+                    $result[] = $office;
+                }
+            }
+        }
+        
+        return $result;
     }
 
 }
