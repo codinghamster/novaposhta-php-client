@@ -1,5 +1,7 @@
 <?php
 
+class Novaposhta_Exception extends Exception {}
+
 class Novaposhta {
     
     const URL_ALL_OFFICES = 'http://novaposhta.ua/frontend/brunchoffices/ru?alpha=all';
